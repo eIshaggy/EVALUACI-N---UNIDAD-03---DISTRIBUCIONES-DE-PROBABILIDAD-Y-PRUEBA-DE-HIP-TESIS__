@@ -111,6 +111,45 @@ if df is not None:
         # Decisión automática
         decision_texto = "Rechazar la Hipótesis Nula (H0)" if rechazar else "No rechazar la Hipótesis Nula (H0)"
         st.markdown(f"### Decisión Automática: {decision_texto}")
+        # --- VISUALIZACIÓN DE LA REGIÓN CRÍTICA (ETAPA 4) ---
+        st.subheader("Visualización de la Región Crítica")
+        
+        # Crear los datos de la curva de la Campana de Gauss (Distribución Normal Estándar)
+        x = np.linspace(-4, 4, 1000)
+        y = stats.norm.pdf(x, 0, 1)
+        
+        fig2, ax2 = plt.subplots(figsize=(10, 4))
+        ax2.plot(x, y, color='black', label='Distribución Normal Estándar')
+        
+        # Dibujar una línea roja donde cayó nuestro estadístico Z calculado
+        ax2.axvline(z_stat, color='red', linestyle='-', linewidth=2, label=f'Z Calculado ({z_stat:.2f})')
+        
+        # Sombrear la zona de rechazo de color salmón según el tipo de prueba
+        if tipo_prueba == "Bilateral":
+            ax2.fill_between(x, y, where=(x < z_crit_inf), color='salmon', alpha=0.5, label='Zona de Rechazo')
+            ax2.fill_between(x, y, where=(x > z_crit_sup), color='salmon', alpha=0.5)
+            ax2.axvline(z_crit_inf, color='blue', linestyle='--', label=f'Z Crítico Inf ({z_crit_inf:.2f})')
+            ax2.axvline(z_crit_sup, color='blue', linestyle='--', label=f'Z Crítico Sup ({z_crit_sup:.2f})')
+        elif tipo_prueba == "Cola Izquierda":
+            ax2.fill_between(x, y, where=(x < z_crit_inf), color='salmon', alpha=0.5, label='Zona de Rechazo')
+            ax2.axvline(z_crit_inf, color='blue', linestyle='--', label=f'Z Crítico ({z_crit_inf:.2f})')
+        else: # Cola Derecha
+            ax2.fill_between(x, y, where=(x > z_crit_sup), color='salmon', alpha=0.5, label='Zona de Rechazo')
+            ax2.axvline(z_crit_sup, color='blue', linestyle='--', label=f'Z Crítico ({z_crit_sup:.2f})')
+            
+        # Enviar la gráfica a Streamlit
+        ax2.set_title("Gráfico de la Prueba de Hipótesis")
+        ax2.set_xlabel("Valor Z")
+        ax2.set_ylabel("Densidad")
+        ax2.legend()
+        
+        # --- NUEVO CANDADO VISUAL ---
+        ax2.set_xlim([-5, 5]) # Congela el zoom en la campana
+        if abs(z_stat) > 5:
+            st.warning(f"Nota visual: El Estadístico Z calculado ({z_stat:.2f}) es tan extremo que cae fuera del área visible de esta gráfica.")
+        
+        # Enviar la gráfica a Streamlit
+        st.pyplot(fig2)
         
     else:
         st.warning("El archivo cargado no contiene columnas numéricas.")
