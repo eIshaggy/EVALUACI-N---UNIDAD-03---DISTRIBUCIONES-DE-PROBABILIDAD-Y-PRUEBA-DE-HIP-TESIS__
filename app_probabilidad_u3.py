@@ -30,7 +30,7 @@ else:
         df = pd.read_csv(uploaded_file)
         st.sidebar.success("Archivo cargado correctamente.")
 
-# --- SECCIÓN DE VISUALIZACIÓN ---
+# --- SECCIÓN DE VISUALIZACIÓN Y PRUEBA Z ---
 if df is not None:
     st.subheader("Vista Previa de los Datos")
     st.dataframe(df.head())
@@ -62,5 +62,55 @@ if df is not None:
         st.subheader("Análisis Cualitativo")
         st.text_area("1. ¿La distribución parece normal?", key="norm_q")
         st.text_area("2. ¿Hay presencia de sesgo o valores atípicos (outliers)?", key="bias_q")
+        
+        # --- SECCIÓN DE PRUEBA DE HIPÓTESIS (ETAPA 3) ---
+        st.header("Prueba de Hipótesis (Prueba Z)")
+        st.write("Configuración para varianza poblacional conocida y muestra grande (n ≥ 30).")
+        
+        # Interfaz en dos columnas para los parámetros
+        col1, col2 = st.columns(2)
+        with col1:
+            mu_0 = st.number_input("Hipótesis Nula (μ0)", value=0.0)
+            sigma_pop = st.number_input("Desviación Estándar Poblacional (σ) conocida", min_value=0.01, value=1.0)
+        with col2:
+            alpha = st.selectbox("Nivel de Significancia (α)", [0.01, 0.05, 0.10], index=1)
+            tipo_prueba = st.selectbox("Tipo de Prueba", ["Bilateral", "Cola Izquierda", "Cola Derecha"])
+            
+        # Variables base
+        n = len(datos_var)
+        media_muestral = datos_var.mean()
+        
+        # Cálculos matemáticos
+        error_estandar = sigma_pop / np.sqrt(n)
+        z_stat = (media_muestral - mu_0) / error_estandar
+        
+        # Lógica de decisión según el tipo de prueba
+        if tipo_prueba == "Bilateral":
+            p_value = 2 * (1 - stats.norm.cdf(abs(z_stat)))
+            z_crit_inf = stats.norm.ppf(alpha / 2)
+            z_crit_sup = stats.norm.isf(alpha / 2)
+            rechazar = p_value < alpha
+        elif tipo_prueba == "Cola Izquierda":
+            p_value = stats.norm.cdf(z_stat)
+            z_crit_inf = stats.norm.ppf(alpha)
+            z_crit_sup = None
+            rechazar = p_value < alpha
+        else: # Cola Derecha
+            p_value = 1 - stats.norm.cdf(z_stat)
+            z_crit_inf = None
+            z_crit_sup = stats.norm.isf(alpha)
+            rechazar = p_value < alpha
+            
+        # Impresión de resultados
+        st.subheader("Resultados Estadísticos")
+        st.write(f"**Tamaño de muestra (n):** {n}")
+        st.write(f"**Media muestral:** {media_muestral:.4f}")
+        st.write(f"**Estadístico Z calculado:** {z_stat:.4f}")
+        st.write(f"**Valor p (p-value):** {p_value:.6f}")
+        
+        # Decisión automática
+        decision_texto = "Rechazar la Hipótesis Nula (H0)" if rechazar else "No rechazar la Hipótesis Nula (H0)"
+        st.markdown(f"### Decisión Automática: {decision_texto}")
+        
     else:
         st.warning("El archivo cargado no contiene columnas numéricas.")
